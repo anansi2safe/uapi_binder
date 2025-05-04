@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "string.h": "c",
+        "binder.h": "c",
+        "ioctl.h": "c",
+        "mman.h": "c",
+        "uapi_binder.h": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "system_error": "c",
+        "typeinfo": "c"
+    }
+}
