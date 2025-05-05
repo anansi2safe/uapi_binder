@@ -40,6 +40,7 @@ typedef struct __TR_BUILDER{
 
 #define NEW_TR_BUILDER(o)                   \
 TR_BUILDER o;                               \
+memset(&o, 0, sizeof(o));                   \
 do{                                         \
     SET_FIELD(o, set_tr_target_handle);     \
     SET_FIELD(o, set_tr_target_ptr);        \
@@ -54,11 +55,22 @@ do{                                         \
     SET_FIELD(o, set_tr_data_ptr_offsets);  \
 }while(0)
 
+
 int binder_read(PBINDER_INFO info, BYTE* buffer, size_t size);
 int binder_write(PBINDER_INFO info, BYTE* buffer, size_t size);
-int binder_become_context_manager(PBINDER_INFO info, BOOL ext);
+int binder_increfs(PBINDER_INFO info, uint32_t target);
+int binder_acquire(PBINDER_INFO info, uint32_t target);
+int binder_release(PBINDER_INFO info, uint32_t target);
+int binder_decrefs(PBINDER_INFO info, uint32_t target);
 int binder_open(PBINDER_INFO info, size_t mapsize);
 int binder_close(PBINDER_INFO info);
+
+int binder_become_context_manager(
+    PBINDER_INFO info, 
+    binder_uintptr_t cookie, 
+    binder_uintptr_t binder,
+    BOOL ext);
+
 int binder_read_write(
     PBINDER_INFO info, 
     BYTE* wbuffer, 
@@ -72,7 +84,22 @@ int binder_transaction(
     size_t rsize,
     struct binder_transaction_data tr
 );
+
 int binder_transaction_sg(
+    PBINDER_INFO info, 
+    BYTE* rbuffer,
+    size_t rsize,
+    struct binder_transaction_data tr
+);
+
+int binder_reply(
+    PBINDER_INFO info, 
+    BYTE* rbuffer,
+    size_t rsize,
+    struct binder_transaction_data tr
+);
+
+int binder_reply_sg(
     PBINDER_INFO info, 
     BYTE* rbuffer,
     size_t rsize,

@@ -1,14 +1,19 @@
 #include "binder.h"
 
 
-int binder_become_context_manager(PBINDER_INFO info, BOOL ext){
+int binder_become_context_manager(
+    PBINDER_INFO info, 
+    binder_uintptr_t cookie, 
+    binder_uintptr_t binder,
+    BOOL ext
+){
     DCHECK(ext < BOOL_BOUND);
     if(ext){
         struct flat_binder_object fbo;
         fbo.hdr.type = BINDER_TYPE_BINDER;
         fbo.flags = FLAT_BINDER_FLAG_ACCEPTS_FDS;
-        fbo.binder = (binder_uintptr_t)NULL;
-        fbo.cookie = (binder_uintptr_t)NULL;
+        fbo.binder = binder;
+        fbo.cookie = cookie;
 
         return ioctl(info->fd_, BINDER_SET_CONTEXT_MGR_EXT, &fbo);
     } else {
@@ -37,6 +42,50 @@ int binder_close(PBINDER_INFO info){
     munmap(info->mapped_, info->mapsize_);
     close(info->fd_);
     return BINDER_SUCCESS;
+}
+
+int binder_increfs(PBINDER_INFO info, uint32_t target){
+    struct {
+        uint32_t cmd_;
+        uint32_t target_;
+    }__packed data;
+
+    data.cmd_ = BC_INCREFS;
+    data.target_ = target;
+    return binder_write(info, (BYTE*)&data, sizeof(data));
+}
+
+int binder_acquire(PBINDER_INFO info, uint32_t target){
+    struct {
+        uint32_t cmd_;
+        uint32_t target_;
+    }__packed data;
+
+    data.cmd_ = BC_ACQUIRE;
+    data.target_ = target;
+    return binder_write(info, (BYTE*)&data, sizeof(data));
+}
+
+int binder_release(PBINDER_INFO info, uint32_t target){
+    struct {
+        uint32_t cmd_;
+        uint32_t target_;
+    }__packed data;
+
+    data.cmd_ = BC_RELEASE;
+    data.target_ = target;
+    return binder_write(info, (BYTE*)&data, sizeof(data));
+}
+
+int binder_decrefs(PBINDER_INFO info, uint32_t target){
+    struct {
+        uint32_t cmd_;
+        uint32_t target_;
+    }__packed data;
+
+    data.cmd_ = BC_DECREFS;
+    data.target_ = target;
+    return binder_write(info, (BYTE*)&data, sizeof(data));
 }
 
 int binder_read_write(
@@ -101,6 +150,40 @@ int binder_transaction_sg(
         info, (BYTE*)&data, sizeof(data), rbuffer, rsize);
 }
 
+int binder_reply(
+    PBINDER_INFO info, 
+    BYTE* rbuffer,
+    size_t rsize,
+    struct binder_transaction_data tr
+){
+    struct {
+        uint32_t cmd_;
+        struct binder_transaction_data tr_;
+    }__packed data;
+
+    data.cmd_ = BC_REPLY;
+    data.tr_ = tr;
+    return binder_read_write(
+        info, (BYTE*)&data, sizeof(data), rbuffer, rsize);
+}
+
+int binder_reply_sg(
+    PBINDER_INFO info, 
+    BYTE* rbuffer,
+    size_t rsize,
+    struct binder_transaction_data tr
+){
+    struct {
+        uint32_t cmd_;
+        struct binder_transaction_data_sg tr_;
+    }__packed data;
+
+    data.cmd_ = BC_REPLY_SG;
+    data.tr_.buffers_size = sizeof(tr);
+    data.tr_.transaction_data = tr;
+    return binder_read_write(
+        info, (BYTE*)&data, sizeof(data), rbuffer, rsize);
+}
 
 void set_tr_target_handle(
     PTR_BUILDER this,

@@ -8,12 +8,12 @@ SRCS := $(wildcard *.c)
 
 # 默认构建规则
 build: 
-	@echo "building..."
+	@echo "[*]building..."
 	@$(CC) $(CFLAGS) $(SRCS) -o $(TARGET)
 
 # 清理规则
 clean:
-	@echo "remove"
+	@echo "[*]$(TARGET) removing..."
 	@rm -rf $(TARGET)
 
 .PHONY: build clean
