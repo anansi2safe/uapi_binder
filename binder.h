@@ -55,7 +55,6 @@ do{                                         \
     SET_FIELD(o, set_tr_data_ptr_offsets);  \
 }while(0)
 
-
 int binder_read(PBINDER_INFO info, BYTE* buffer, size_t size);
 int binder_write(PBINDER_INFO info, BYTE* buffer, size_t size);
 int binder_increfs(PBINDER_INFO info, uint32_t target);
@@ -64,6 +63,16 @@ int binder_release(PBINDER_INFO info, uint32_t target);
 int binder_decrefs(PBINDER_INFO info, uint32_t target);
 int binder_open(PBINDER_INFO info, size_t mapsize);
 int binder_close(PBINDER_INFO info);
+
+int binder_request_death_notification(
+    PBINDER_INFO info, 
+    uint32_t target, 
+    binder_uintptr_t cookie);
+
+int binder_clear_death_notification(
+    PBINDER_INFO info, 
+    uint32_t target, 
+    binder_uintptr_t cookie);
 
 int binder_become_context_manager(
     PBINDER_INFO info, 

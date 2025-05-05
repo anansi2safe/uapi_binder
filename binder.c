@@ -17,7 +17,7 @@ int binder_become_context_manager(
 
         return ioctl(info->fd_, BINDER_SET_CONTEXT_MGR_EXT, &fbo);
     } else {
-        return ioctl(info->fd_, BINDER_SET_CONTEXT_MGR_EXT, NULL);
+        return ioctl(info->fd_, BINDER_SET_CONTEXT_MGR, NULL);
     }
 }
 
@@ -183,6 +183,44 @@ int binder_reply_sg(
     data.tr_.transaction_data = tr;
     return binder_read_write(
         info, (BYTE*)&data, sizeof(data), rbuffer, rsize);
+}
+
+int binder_request_death_notification(
+    PBINDER_INFO info, 
+    uint32_t target, 
+    binder_uintptr_t cookie
+){
+    struct {
+        uint32_t cmd_;
+        uint32_t target_;
+        binder_uintptr_t cookie_;
+    }__packed data;
+
+    data.cmd_ = BC_REQUEST_DEATH_NOTIFICATION;
+    data.target_ = target;
+    data.cookie_ = cookie;
+
+    return binder_read_write(
+        info, (BYTE*)&data, sizeof(data), (BYTE*)NULL, 0);
+}
+
+int binder_clear_death_notification(
+    PBINDER_INFO info, 
+    uint32_t target, 
+    binder_uintptr_t cookie
+){
+    struct {
+        uint32_t cmd_;
+        uint32_t target_;
+        binder_uintptr_t cookie_;
+    }__packed data;
+
+    data.cmd_ = BC_CLEAR_DEATH_NOTIFICATION;
+    data.target_ = target;
+    data.cookie_ = cookie;
+
+    return binder_read_write(
+        info, (BYTE*)&data, sizeof(data), (BYTE*)NULL, 0);
 }
 
 void set_tr_target_handle(
