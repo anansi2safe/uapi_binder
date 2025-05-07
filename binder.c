@@ -21,6 +21,19 @@ int binder_become_context_manager(
     }
 }
 
+int binder_freeze(
+    PBINDER_INFO info,
+    uint32_t pid,
+    uint32_t enable,
+    uint32_t timeout_ms
+){
+    struct binder_freeze_info bfi;
+    bfi.pid = pid;
+    bfi.enable = enable;
+    bfi.timeout_ms = timeout_ms;
+    return ioctl(info->fd_, BINDER_FREEZE, &bfi);
+}
+
 int binder_open(PBINDER_INFO info, size_t mapsize){
     struct binder_version ver;
     info->fd_ = open(BINDER_DEVICE, O_RDWR | O_CLOEXEC);
@@ -298,4 +311,39 @@ void set_tr_data_ptr_offsets(
     binder_uintptr_t offsets
 ){
     this->tr_.data.ptr.offsets = offsets;
+}
+
+void set_fbo_flags(
+    PBINDER_OBJECT_BUILDER this,
+    uint32_t flags
+){
+    this->obj_.flags = flags;
+}
+
+void set_fbo_cookie(
+    PBINDER_OBJECT_BUILDER this,
+    binder_uintptr_t cookie
+){
+    this->obj_.cookie = cookie;
+}
+
+void set_fbo_binder(
+    PBINDER_OBJECT_BUILDER this,
+    binder_uintptr_t binder
+){
+    this->obj_.binder = binder;
+}
+
+void set_fbo_handle(
+    PBINDER_OBJECT_BUILDER this,
+    uint32_t handle
+){
+    this->obj_.handle = handle;
+}
+
+void set_fbo_hdr_type(
+    PBINDER_OBJECT_BUILDER this,
+    uint32_t type
+){
+    this->obj_.hdr.type = type;
 }

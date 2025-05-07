@@ -10,6 +10,10 @@ uint32_t register_binder_service(
     PBINDER_INFO info, 
     const char* name);
 
+uint32_t search_binder_service(
+    PBINDER_INFO info,
+    const char* name);
+
 int create_process(
     PROCESS_FUNC child, 
     PROCESS_FUNC parent);

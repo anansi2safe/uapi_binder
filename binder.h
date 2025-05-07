@@ -10,8 +10,11 @@
 #define BINDER_VERSION_ERROR -15
 #define BINDER_MAPPED_ERROR (BINDER_VERSION_ERROR - 1)
 
-#define FIELD_DEFINE(name, arg) \
+#define TR_FIELD_DEFINE(name, arg) \
 void (*name)(struct __TR_BUILDER* this, arg)
+
+#define BINDER_OBJECT_FIELD_DEFINE(name, arg) \
+void (*name)(struct __BINDER_OBJECT_BUILDER* this, arg)
 
 #define SET_FIELD(o, name) \
 o.name##_ = name
@@ -23,19 +26,28 @@ typedef struct __BINDER_INFO
     size_t mapsize_;
 }BINDER_INFO, *PBINDER_INFO;
 
+typedef struct __BINDER_OBJECT_BUILDER{
+    struct flat_binder_object obj_;
+    BINDER_OBJECT_FIELD_DEFINE(set_fbo_flags_, uint32_t flags);
+    BINDER_OBJECT_FIELD_DEFINE(set_fbo_cookie_, binder_uintptr_t cookie);
+    BINDER_OBJECT_FIELD_DEFINE(set_fbo_binder_, binder_uintptr_t binder);
+    BINDER_OBJECT_FIELD_DEFINE(set_fbo_handle_, uint32_t handle);
+    BINDER_OBJECT_FIELD_DEFINE(set_fbo_hdr_type_, uint32_t type);
+}BINDER_OBJECT_BUILDER, *PBINDER_OBJECT_BUILDER;
+
 typedef struct __TR_BUILDER{
     struct binder_transaction_data tr_;
-    FIELD_DEFINE(set_tr_target_handle_, uint32_t handle);
-    FIELD_DEFINE(set_tr_target_ptr_, binder_uintptr_t ptr);
-    FIELD_DEFINE(set_tr_cookie_, binder_uintptr_t cookie);
-    FIELD_DEFINE(set_tr_code_, uint32_t code);
-    FIELD_DEFINE(set_tr_flags_, uint32_t flags);
-    FIELD_DEFINE(set_tr_sender_pid_, pid_t sender_pid);
-    FIELD_DEFINE(set_tr_sender_euid_, uid_t sender_euid);
-    FIELD_DEFINE(set_tr_data_size_, binder_size_t data_size);
-    FIELD_DEFINE(set_tr_offsets_size_, binder_size_t offsets_size);
-    FIELD_DEFINE(set_tr_data_ptr_buffer_, binder_uintptr_t buffer);
-    FIELD_DEFINE(set_tr_data_ptr_offsets_, binder_uintptr_t offsets);
+    TR_FIELD_DEFINE(set_tr_target_handle_, uint32_t handle);
+    TR_FIELD_DEFINE(set_tr_target_ptr_, binder_uintptr_t ptr);
+    TR_FIELD_DEFINE(set_tr_cookie_, binder_uintptr_t cookie);
+    TR_FIELD_DEFINE(set_tr_code_, uint32_t code);
+    TR_FIELD_DEFINE(set_tr_flags_, uint32_t flags);
+    TR_FIELD_DEFINE(set_tr_sender_pid_, pid_t sender_pid);
+    TR_FIELD_DEFINE(set_tr_sender_euid_, uid_t sender_euid);
+    TR_FIELD_DEFINE(set_tr_data_size_, binder_size_t data_size);
+    TR_FIELD_DEFINE(set_tr_offsets_size_, binder_size_t offsets_size);
+    TR_FIELD_DEFINE(set_tr_data_ptr_buffer_, binder_uintptr_t buffer);
+    TR_FIELD_DEFINE(set_tr_data_ptr_offsets_, binder_uintptr_t offsets);
 }TR_BUILDER, *PTR_BUILDER;
 
 #define NEW_TR_BUILDER(o)                   \
@@ -55,6 +67,17 @@ do{                                         \
     SET_FIELD(o, set_tr_data_ptr_offsets);  \
 }while(0)
 
+#define NEW_BINDER_OBJECT_BUILDER(o)        \
+BINDER_OBJECT_BUILDER o;                    \
+memset(&o, 0, sizeof(o));                   \
+do{                                         \
+    SET_FIELD(o, set_fbo_binder);           \
+    SET_FIELD(o, set_fbo_cookie);           \
+    SET_FIELD(o, set_fbo_flags);            \
+    SET_FIELD(o, set_fbo_handle);           \
+    SET_FIELD(o, set_fbo_hdr_type);         \
+}while(0)
+
 int binder_read(PBINDER_INFO info, BYTE* buffer, size_t size);
 int binder_write(PBINDER_INFO info, BYTE* buffer, size_t size);
 int binder_increfs(PBINDER_INFO info, uint32_t target);
@@ -63,6 +86,13 @@ int binder_release(PBINDER_INFO info, uint32_t target);
 int binder_decrefs(PBINDER_INFO info, uint32_t target);
 int binder_open(PBINDER_INFO info, size_t mapsize);
 int binder_close(PBINDER_INFO info);
+
+int binder_freeze(
+    PBINDER_INFO info,
+    uint32_t pid,
+    uint32_t enable,
+    uint32_t timeout_ms
+);
 
 int binder_request_death_notification(
     PBINDER_INFO info, 
@@ -173,4 +203,31 @@ void set_tr_data_ptr_offsets(
     binder_uintptr_t offsets
 );
 
+/**
+ * BINDER_OBJECT_BUILDER members function
+ */
+void set_fbo_flags(
+    PBINDER_OBJECT_BUILDER this,
+    uint32_t flags
+);
+
+void set_fbo_cookie(
+    PBINDER_OBJECT_BUILDER this,
+    binder_uintptr_t cookie
+);
+
+void set_fbo_binder(
+    PBINDER_OBJECT_BUILDER this,
+    binder_uintptr_t binder
+);
+
+void set_fbo_handle(
+    PBINDER_OBJECT_BUILDER this,
+    uint32_t handle
+);
+
+void set_fbo_hdr_type(
+    PBINDER_OBJECT_BUILDER this,
+    uint32_t type
+);
 #endif
