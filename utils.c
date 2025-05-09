@@ -33,3 +33,14 @@ int create_process(
     }
     return 0;
 }
+
+int create_thread(
+    THREAD_FUNC func,
+    void* args
+){
+    pthread_t thread_id;
+    int ret = 0;
+    ret = pthread_create(& thread_id, NULL, func, args);
+    ret = pthread_join(thread_id, NULL);
+    return ret;
+}

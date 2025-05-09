@@ -18,6 +18,7 @@ void virtual_servicemanager(){
     binder_close(info_ptr);
 }
 
+
 void virtual_client(){
     BINDER_INFO info;
     PBINDER_INFO info_ptr = &info;
@@ -28,7 +29,7 @@ void virtual_client(){
         perror("binder version error");
     }
     binder_size_t offsets[1] = {0};
-    bob.set_fbo_hdr_type_(&bob, BINDER_TYPE_BINDER);
+    bob.set_fbo_hdr_type_(&bob, BINDER_TYPE_HANDLE);
     bob.set_fbo_cookie_(&bob, COOKIE);
     bob.set_fbo_handle_(&bob, 0);
     bob.set_fbo_binder_(&bob, 0);
