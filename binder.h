@@ -19,6 +19,21 @@ void (*name)(struct __BINDER_OBJECT_BUILDER* this, arg)
 #define SET_FIELD(o, name) \
 o.name##_ = name
 
+typedef void (*BINDER_PARSE_CALLBACK)(
+    uint32_t, 
+    struct binder_transaction_data_secctx,
+    BOOL is_sec_ctx
+);
+
+enum {
+    /* Must match definitions in IBinder.h and IServiceManager.h */
+    PING_TRANSACTION  = B_PACK_CHARS('_','P','N','G'),
+    SVC_MGR_GET_SERVICE = 1,
+    SVC_MGR_CHECK_SERVICE,
+    SVC_MGR_ADD_SERVICE,
+    SVC_MGR_LIST_SERVICES,
+};
+
 typedef struct __BINDER_INFO
 {
     int fd_;
@@ -88,6 +103,12 @@ int binder_decrefs(PBINDER_INFO info, uint32_t target);
 int binder_open(PBINDER_INFO info, size_t mapsize);
 int binder_close(PBINDER_INFO info);
 
+
+int binder_free_buffer(
+    PBINDER_INFO info, 
+    binder_uintptr_t buffer
+);
+
 int binder_freeze(
     PBINDER_INFO info,
     uint32_t pid,
@@ -144,6 +165,13 @@ int binder_reply_sg(
     BYTE* rbuffer,
     size_t rsize,
     struct binder_transaction_data tr
+);
+
+uint32_t binder_parse(
+    PBINDER_INFO info, 
+    BYTE* rbuffer, 
+    size_t rsize,
+    BINDER_PARSE_CALLBACK callback
 );
 
 /**
