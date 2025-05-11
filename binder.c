@@ -21,6 +21,69 @@ int binder_become_context_manager(
     }
 }
 
+int binder_free_buffer(
+    PBINDER_INFO info, 
+    binder_uintptr_t buffer
+){
+    struct {
+        uint32_t cmd_;
+        binder_uintptr_t buffer_;
+    }__packed data;
+    data.cmd_ = BC_FREE_BUFFER;
+    data.buffer_ = buffer;
+    return binder_write(info, (BYTE*)&data, sizeof(data));
+}
+
+uint32_t binder_parse(
+    PBINDER_INFO info, 
+    BYTE* rbuffer, 
+    size_t rsize,
+    BINDER_PARSE_CALLBACK callback
+){
+    uint32_t result = 0;
+    size_t end_addr = (size_t)rbuffer + rsize;
+    for (size_t ptr = (size_t)rbuffer; ptr < end_addr; ){
+        uint32_t cmd = *((uint32_t*)ptr);
+        ptr += sizeof(uint32_t);
+        switch (cmd) {
+        case BR_NOOP:
+            break;
+        case BR_TRANSACTION_COMPLETE:
+        case BR_ONEWAY_SPAM_SUSPECT:
+            result = cmd;
+            break;
+        case BR_TRANSACTION_SEC_CTX:
+        case BR_TRANSACTION:{
+            BOOL is_sec_ctx = FALSE;
+            struct binder_transaction_data_secctx tds;
+            size_t surplus_size = end_addr-ptr;
+            memset(&tds, 0, sizeof(tds));
+            if(cmd == BR_TRANSACTION){
+                CHECK(surplus_size > sizeof(
+                    struct binder_transaction_data_secctx));
+                memcpy(&tds, (const void*)ptr, sizeof(tds));
+                ptr += sizeof(tds);
+            }else{
+                CHECK(surplus_size > sizeof(
+                    struct binder_transaction_data));
+                is_sec_ctx = TRUE;
+                memcpy(
+                    &tds.transaction_data, 
+                    (const void*)ptr, sizeof(tds.transaction_data));
+            }
+            // Maybe need free buffer?
+            // Now, let the callback function manually free the buffer
+            callback(cmd, tds, is_sec_ctx);
+            result = cmd;
+            break;
+        }
+        default:
+            break;
+        }
+    }
+    return result;
+}
+
 int binder_freeze(
     PBINDER_INFO info,
     uint32_t pid,
