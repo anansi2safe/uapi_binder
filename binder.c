@@ -47,21 +47,34 @@ uint32_t binder_parse(
         ptr += sizeof(uint32_t);
         switch (cmd) {
         case BR_NOOP:
+            puts("BR_NOOP");
+            result = cmd;
             break;
         case BR_TRANSACTION_COMPLETE:
-        case BR_ONEWAY_SPAM_SUSPECT:
+            puts("BR_TRANSACTION_COMPLETE");
+            result = cmd;
+            break;
+        case BR_INCREFS:
+        case BR_ACQUIRE:
+        case BR_RELEASE:
+        case BR_DECREFS:
+            puts("BR_INCREFS");
+            ptr += sizeof(struct binder_ptr_cookie);
             result = cmd;
             break;
         case BR_TRANSACTION_SEC_CTX:
         case BR_TRANSACTION:{
+            puts("BR_TRANSACTION");
             BOOL is_sec_ctx = FALSE;
             struct binder_transaction_data_secctx tds;
             size_t surplus_size = end_addr-ptr;
+            binder_uintptr_t secctx = 0;
             memset(&tds, 0, sizeof(tds));
             if(cmd == BR_TRANSACTION){
                 CHECK(surplus_size > sizeof(
                     struct binder_transaction_data_secctx));
                 memcpy(&tds, (const void*)ptr, sizeof(tds));
+                secctx = tds.secctx = 0;
                 ptr += sizeof(tds);
             }else{
                 CHECK(surplus_size > sizeof(
@@ -70,15 +83,52 @@ uint32_t binder_parse(
                 memcpy(
                     &tds.transaction_data, 
                     (const void*)ptr, sizeof(tds.transaction_data));
+                secctx = tds.secctx;
+                ptr += sizeof(tds.transaction_data);
             }
             // Maybe need free buffer?
             // Now, let the callback function manually free the buffer
-            callback(cmd, tds, is_sec_ctx);
+            DCHECK(callback != NULL);
+            if(callback)
+                callback(cmd, tds.transaction_data, secctx, is_sec_ctx);
             result = cmd;
             break;
         }
-        default:
+        case BR_REPLY:{
+            puts("BR_REPLY");
+            result = cmd;
+            CHECK(
+                (end_addr - ptr) >= 
+                sizeof(struct binder_transaction_data));
+            struct binder_transaction_data* tr = 
+                (struct binder_transaction_data*)ptr;
+            ptr += sizeof(*tr);
             break;
+        }
+        case BR_FAILED_REPLY:
+            puts("BR_FAILED_REPLY");
+            result = cmd;
+            break;
+        case BR_DEAD_BINDER:
+            puts("BR_DEAD_BINDER");
+            result = cmd;
+            CHECK(
+                (end_addr - ptr) >= sizeof(binder_uintptr_t));
+            ptr += sizeof(binder_uintptr_t);
+            break;
+        case BR_DEAD_REPLY:
+            puts("BR_DEAD_REPLY");
+
+            result = cmd;
+            break;
+        case BR_ONEWAY_SPAM_SUSPECT:
+            puts("BR_ONEWAY_SPAM_SUSPECT");
+            result = cmd;
+            break;
+        default:
+            printf("default: %x", cmd);
+            result = cmd;
+            return cmd;
         }
     }
     return result;

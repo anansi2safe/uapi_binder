@@ -46,6 +46,15 @@ void virtual_client(){
     binder_close(info_ptr);
 }
 
+void handle_binder(
+    uint32_t cmd, 
+    struct binder_transaction_data tr,
+    binder_uintptr_t secctx,
+    BOOL is_sec_ctx
+){
+    printf("\ncookie: %llx\n", tr.cookie);
+    printf("\nhandle: %x\n", tr.target.handle);
+}
 
 void virtual_parent(){
     BINDER_INFO info;
@@ -73,7 +82,7 @@ void virtual_parent(){
     memcpy(buffer+name_len+2, &bob.obj_, sizeof(bob.obj_));
     binder_size_t offsets[] = {name_len+2};
 
-    tb.set_tr_flags_(&tb, TF_ONE_WAY);
+    tb.set_tr_flags_(&tb, TF_UPDATE_TXN);
     tb.set_tr_target_handle_(&tb, 0);
     tb.set_tr_code_(&tb, SVC_MGR_ADD_SERVICE);
     tb.set_tr_data_size_(&tb, 1024);
@@ -82,10 +91,11 @@ void virtual_parent(){
     tb.set_tr_data_ptr_buffer_(&tb, (binder_uintptr_t)&buffer);
     tb.set_tr_cookie_(&tb, COOKIE);
     binder_transaction(info_ptr, rbuffer, rsize, tb.tr_);
-    binder_parse(info_ptr, rbuffer, rsize, );
+    //binder_parse(info_ptr, rbuffer, rsize, handle_binder);
     binder_close(info_ptr);
 }
 
 int main(int argc, char* argv[]){
-    return create_process(virtual_client, virtual_parent);
+    virtual_parent();
+    //return create_process(virtual_client, virtual_parent);
 }

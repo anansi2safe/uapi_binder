@@ -21,8 +21,9 @@ o.name##_ = name
 
 typedef void (*BINDER_PARSE_CALLBACK)(
     uint32_t, 
-    struct binder_transaction_data_secctx,
-    BOOL is_sec_ctx
+    struct binder_transaction_data,
+    binder_uintptr_t,
+    BOOL
 );
 
 enum {
