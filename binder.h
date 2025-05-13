@@ -5,10 +5,12 @@
 #include "uapi_binder.h"
 
 #define BINDER_DEVICE "/dev/binder"
+#define DEFAULT_MAX_BINDER_THREADS 0xFF
 
 #define BINDER_SUCCESS 0
 #define BINDER_VERSION_ERROR -15
 #define BINDER_MAPPED_ERROR (BINDER_VERSION_ERROR - 1)
+#define BINDER_SET_MAX_THREADS_ERROR (BINDER_MAPPED_ERROR - 1)
 
 #define TR_FIELD_DEFINE(name, arg) \
 void (*name)(struct __TR_BUILDER* this, arg)
@@ -95,7 +97,7 @@ do{                                         \
     SET_FIELD(o, set_fbo_hdr_type);         \
 }while(0)
 
-int binder_read(PBINDER_INFO info, BYTE* buffer, size_t size);
+size_t binder_read(PBINDER_INFO info, BYTE* buffer, size_t size);
 int binder_write(PBINDER_INFO info, BYTE* buffer, size_t size);
 int binder_increfs(PBINDER_INFO info, uint32_t target);
 int binder_acquire(PBINDER_INFO info, uint32_t target);
@@ -133,21 +135,21 @@ int binder_become_context_manager(
     binder_uintptr_t binder,
     BOOL ext);
 
-int binder_read_write(
+size_t binder_read_write(
     PBINDER_INFO info, 
     BYTE* wbuffer, 
     size_t wsize, 
     BYTE* rbuffer, 
     size_t rsize
 );
-int binder_transaction(
+size_t binder_transaction(
     PBINDER_INFO info, 
     BYTE* rbuffer,
     size_t rsize,
     struct binder_transaction_data tr
 );
 
-int binder_transaction_sg(
+size_t binder_transaction_sg(
     PBINDER_INFO info, 
     BYTE* rbuffer,
     size_t rsize,

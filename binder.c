@@ -149,12 +149,15 @@ int binder_freeze(
 
 int binder_open(PBINDER_INFO info, size_t mapsize){
     struct binder_version ver;
+    size_t max_threads = DEFAULT_MAX_BINDER_THREADS;
     info->fd_ = open(BINDER_DEVICE, O_RDWR | O_CLOEXEC);
     CHECK_LOG("binder device open failed!", info->fd_ >= 0);
 
     if(ioctl(info->fd_, BINDER_VERSION, &ver) < 0)
         return BINDER_VERSION_ERROR;
 
+    if(ioctl(info->fd_, BINDER_SET_MAX_THREADS, &max_threads) < 0)
+        return BINDER_SET_MAX_THREADS_ERROR;
     info->mapsize_ = mapsize;
     info->mapped_ = mmap(
         NULL, mapsize, PROT_READ, MAP_PRIVATE, info->fd_, 0);
@@ -214,7 +217,7 @@ int binder_decrefs(PBINDER_INFO info, uint32_t target){
     return binder_write(info, (BYTE*)&data, sizeof(data));
 }
 
-int binder_read_write(
+size_t binder_read_write(
     PBINDER_INFO info, 
     BYTE* wbuffer, 
     size_t wsize, 
@@ -229,11 +232,11 @@ int binder_read_write(
     bwr.write_buffer = (binder_uintptr_t)wbuffer;
     bwr.write_size = wsize;
     bwr.write_consumed = 0;
-
-    return ioctl(info->fd_, BINDER_WRITE_READ, &bwr);
+    ioctl(info->fd_, BINDER_WRITE_READ, &bwr);
+    return bwr.read_consumed;
 }
 
-int binder_read(PBINDER_INFO info, BYTE* buffer, size_t size){
+size_t binder_read(PBINDER_INFO info, BYTE* buffer, size_t size){
     return binder_read_write(info, NULL, 0, buffer, size);
 }
 
@@ -241,7 +244,7 @@ int binder_write(PBINDER_INFO info, BYTE* buffer, size_t size){
     return binder_read_write(info, buffer, size, NULL, 0);
 }
 
-int binder_transaction(
+size_t binder_transaction(
     PBINDER_INFO info, 
     BYTE* rbuffer,
     size_t rsize,
@@ -258,7 +261,7 @@ int binder_transaction(
         info, (BYTE*)&data, sizeof(data), rbuffer, rsize);
 }
 
-int binder_transaction_sg(
+size_t binder_transaction_sg(
     PBINDER_INFO info, 
     BYTE* rbuffer,
     size_t rsize,

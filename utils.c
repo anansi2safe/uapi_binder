@@ -44,3 +44,14 @@ int create_thread(
     ret = pthread_join(thread_id, NULL);
     return ret;
 }
+
+void hex_print(
+    void* buffer, 
+    size_t bsize
+){
+    uint32_t* h = (uint32_t*)buffer;
+    size_t n = bsize / sizeof(uint32_t);
+    for(size_t i=0; i<n; i++){
+        printf("%x ", h[i]);
+    }
+}
