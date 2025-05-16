@@ -1,57 +1,75 @@
 #include "utils.h"
 
-uint32_t register_binder_service(
-    PBINDER_INFO info, 
-    const char* name
-){
-    uint32_t handle = 0;
-    
-    return handle;
-}
-
-uint32_t search_binder_service(
-    PBINDER_INFO info,
-    const char* name
-){
-    uint32_t handle = 0;
-    
-    return handle;
-}
-
-int create_process(
-    PROCESS_FUNC child, 
-    PROCESS_FUNC parent
-){
-    pid_t pid = fork();
-    if(pid < 0){
-        CHECK_LOG("process create failed!", FALSE);
-        return -1;
-    }else if (pid == 0){
-        child();
-    }else{
-        parent();
-    }
-    return 0;
-}
-
-int create_thread(
-    THREAD_FUNC func,
-    void* args
-){
-    pthread_t thread_id;
+int create_process(PROCESS_FUNC func){
     int ret = 0;
-    ret = pthread_create(& thread_id, NULL, func, args);
-    ret = pthread_join(thread_id, NULL);
-    return ret;
+    pid_t pid = fork();
+    if(pid == 0){
+        func();
+        exit(0);
+    }else if(pid < 0){
+        ret = pid;
+        return ret;
+    }else{
+        return ret;
+    }
 }
 
-void hex_print(
-    void* buffer, 
-    size_t bsize
+void register_binder_service(
+    PBINDER_INFO info, 
+    const uint16_t* name,
+    size_t name_len,
+    binder_uintptr_t cookie,
+    uint32_t handle
 ){
-    uint32_t* h = (uint32_t*)buffer;
-    size_t n = bsize / sizeof(uint32_t);
-    for(size_t i=0; i<n; i++){
-        printf("%x ", h[i]);
-    }
+    NEW_TR_BUILDER(tb);    
+    NEW_BINDER_OBJECT_BUILDER(bob);
+    BYTE rbuffer[1024];
+    BYTE buffer[1024];
+
+    bob.set_fbo_hdr_type_(&bob, BINDER_TYPE_BINDER);
+    bob.set_fbo_cookie_(&bob, cookie);
+    bob.set_fbo_handle_(&bob, handle);
+    bob.set_fbo_flags_(&bob, TF_ONE_WAY);
+    
+    memset(rbuffer, 0, 1024);
+    memset(buffer, 0, 1024);
+    memcpy(buffer, name, name_len);
+    memcpy(buffer+name_len+2, &bob.obj_, sizeof(bob.obj_));
+
+    binder_size_t offsets[] = {name_len+2};
+    tb.set_tr_flags_(&tb, TF_ACCEPT_FDS);
+    tb.set_tr_target_handle_(&tb, 0);
+    tb.set_tr_code_(&tb, SVC_MGR_ADD_SERVICE);
+    tb.set_tr_data_size_(&tb, 1024);
+    tb.set_tr_offsets_size_(&tb, sizeof(offsets));
+    tb.set_tr_data_ptr_offsets_(&tb, (binder_uintptr_t)&offsets);
+    tb.set_tr_data_ptr_buffer_(&tb, (binder_uintptr_t)&buffer);
+    tb.set_tr_cookie_(&tb, cookie);
+    size_t d = binder_transaction(info, rbuffer, 1024, tb.tr_);
+    binder_parse_log(rbuffer, d);
+}
+
+
+uint32_t find_binder_service(
+    PBINDER_INFO info, 
+    const uint16_t* name,
+    size_t name_len
+){
+    uint32_t handle = 0;
+    NEW_TR_BUILDER(tb);
+    BYTE rbuffer[1024];
+    BYTE buffer[1024];
+    
+    memset(rbuffer, 0, 1024);
+    memset(buffer, 0, 1024);
+    memcpy(buffer, name, name_len);
+
+    tb.set_tr_flags_(&tb, TF_ACCEPT_FDS);
+    tb.set_tr_target_handle_(&tb, 0);
+    tb.set_tr_code_(&tb, SVC_MGR_GET_SERVICE);
+    tb.set_tr_data_size_(&tb, 1024);
+    tb.set_tr_data_ptr_buffer_(&tb, (binder_uintptr_t)&buffer);
+    size_t d = binder_transaction(info, rbuffer, 1024, tb.tr_);
+    binder_parse_log(rbuffer, d);
+    return handle;
 }

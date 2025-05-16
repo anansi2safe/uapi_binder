@@ -4,6 +4,7 @@
 #include "base.h"
 #include "uapi_binder.h"
 
+#define MAX_SERVICE_NAME 1024
 #define BINDER_DEVICE "/dev/binder"
 #define DEFAULT_MAX_BINDER_THREADS 0xFF
 
@@ -20,6 +21,7 @@ void (*name)(struct __BINDER_OBJECT_BUILDER* this, arg)
 
 #define SET_FIELD(o, name) \
 o.name##_ = name
+
 
 typedef void (*BINDER_PARSE_CALLBACK)(
     uint32_t, 
@@ -170,11 +172,9 @@ int binder_reply_sg(
     struct binder_transaction_data tr
 );
 
-uint32_t binder_parse(
-    PBINDER_INFO info, 
+uint32_t binder_parse_log(
     BYTE* rbuffer, 
-    size_t rsize,
-    BINDER_PARSE_CALLBACK callback
+    size_t rsize
 );
 
 /**

@@ -34,11 +34,9 @@ int binder_free_buffer(
     return binder_write(info, (BYTE*)&data, sizeof(data));
 }
 
-uint32_t binder_parse(
-    PBINDER_INFO info, 
+uint32_t binder_parse_log(
     BYTE* rbuffer, 
-    size_t rsize,
-    BINDER_PARSE_CALLBACK callback
+    size_t rsize
 ){
     uint32_t result = 0;
     size_t end_addr = (size_t)rbuffer + rsize;
@@ -55,10 +53,22 @@ uint32_t binder_parse(
             result = cmd;
             break;
         case BR_INCREFS:
-        case BR_ACQUIRE:
-        case BR_RELEASE:
-        case BR_DECREFS:
             puts("BR_INCREFS");
+            ptr += sizeof(struct binder_ptr_cookie);
+            result = cmd;
+            break;
+        case BR_ACQUIRE:
+            puts("BR_ACQUIRE");
+            ptr += sizeof(struct binder_ptr_cookie);
+            result = cmd;
+            break;
+        case BR_RELEASE:
+            puts("BR_RELEASE");
+            ptr += sizeof(struct binder_ptr_cookie);
+            result = cmd;
+            break;
+        case BR_DECREFS:
+            puts("BR_DECREFS");
             ptr += sizeof(struct binder_ptr_cookie);
             result = cmd;
             break;
@@ -86,11 +96,6 @@ uint32_t binder_parse(
                 secctx = tds.secctx;
                 ptr += sizeof(tds.transaction_data);
             }
-            // Maybe need free buffer?
-            // Now, let the callback function manually free the buffer
-            DCHECK(callback != NULL);
-            if(callback)
-                callback(cmd, tds.transaction_data, secctx, is_sec_ctx);
             result = cmd;
             break;
         }
