@@ -15,7 +15,7 @@ void register_binder_service(
     uint32_t handle
 );
 
-uint32_t find_binder_service(
+uint32_t get_binder_service(
     PBINDER_INFO info, 
     const uint16_t* name,
     size_t name_len

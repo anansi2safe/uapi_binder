@@ -32,7 +32,7 @@ void child(){
     uint16_t name[] = {'c', 'o', 'm', '.', 'a', 'a', 'p', 'k', '\0'};
     size_t name_len = sizeof(name);
 
-    find_binder_service(info_ptr, name, name_len);
+    get_binder_service(info_ptr, name, name_len);
     tb.set_tr_target_handle_(&tb, HANDLE);
     binder_transaction(info_ptr, rbuffer, rsize, tb.tr_);
 }
