@@ -252,17 +252,18 @@ int binder_parse(struct binder_state *bs, struct binder_io *bio,
             break;
         case BR_TRANSACTION_SEC_CTX:
         case BR_TRANSACTION: {
+            fprintf(stderr, "servicemanager: BR_TRANSACTION\n");
             struct binder_transaction_data_secctx txn;
             if (cmd == BR_TRANSACTION_SEC_CTX) {
                 if ((end - ptr) < sizeof(struct binder_transaction_data_secctx)) {
-                    printf("parse: txn too small (binder_transaction_data_secctx)!\n");
+                    fprintf(stderr, "parse: txn too small (binder_transaction_data_secctx)!\n");
                     return -1;
                 }
                 memcpy(&txn, (void*) ptr, sizeof(struct binder_transaction_data_secctx));
                 ptr += sizeof(struct binder_transaction_data_secctx);
             } else /* BR_TRANSACTION */ {
                 if ((end - ptr) < sizeof(struct binder_transaction_data)) {
-                    printf("parse: txn too small (binder_transaction_data)!\n");
+                    fprintf(stderr, "parse: txn too small (binder_transaction_data)!\n");
                     return -1;
                 }
                 memcpy(&txn.transaction_data, (void*) ptr, sizeof(struct binder_transaction_data));
@@ -272,7 +273,9 @@ int binder_parse(struct binder_state *bs, struct binder_io *bio,
             }
 
             binder_dump_txn(&txn.transaction_data);
+            fprintf(stderr, "servicemanager: BR_TRANSACTION11111\n");
             if (func) {
+                fprintf(stderr, "servicemanager: func not null\n");
                 unsigned rdata[256/4];
                 struct binder_io msg;
                 struct binder_io reply;

@@ -10,6 +10,7 @@
         "string_view": "c",
         "system_error": "c",
         "typeinfo": "c",
-        "functional": "c"
+        "functional": "c",
+        "numbers": "c"
     }
 }

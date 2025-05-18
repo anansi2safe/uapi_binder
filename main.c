@@ -29,12 +29,10 @@ void child(){
         fprintf(stderr, "binder driver open failed: %x", r);
         return;
     }
-    uint16_t name[] = {'c', 'o', 'm', '.', 'a', 'a', 'p', 'k', '\0'};
+    uint16_t name[] = {'c', 'o', 'm', '.', 'a', 'a', 'p', 'k'};
     size_t name_len = sizeof(name);
 
     get_binder_service(info_ptr, name, name_len);
-    tb.set_tr_target_handle_(&tb, HANDLE);
-    binder_transaction(info_ptr, rbuffer, rsize, tb.tr_);
 }
 
 void parent(){
@@ -47,10 +45,12 @@ void parent(){
         return;
     }
 
-    uint16_t name[] = {'c', 'o', 'm', '.', 'a', 'a', 'p', 'k', '\0'};
+    uint16_t name[] = {'c', 'o', 'm', '.', 'a', 'a', 'p', 'k'};
     size_t name_len = sizeof(name);
     register_binder_service(info_ptr, name, name_len, COOKIE, HANDLE);
-    CHECK(create_process(child) >= 0);
+    get_binder_service(info_ptr, name, name_len);
+    //CHECK(create_process(child) >= 0);
+    getchar();
     binder_close(info_ptr);
 }
 

@@ -21,7 +21,13 @@ uint32_t get_binder_service(
     size_t name_len
 );
 
+uint32_t check_binder_service(
+    PBINDER_INFO info, 
+    const uint16_t* name,
+    size_t name_len
+);
+
 int create_process(PROCESS_FUNC func);
 
-
+void print_hex(BYTE* buffer, size_t len);
 #endif
