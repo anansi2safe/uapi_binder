@@ -4,7 +4,7 @@
 #include "base.h"
 #include "uapi_binder.h"
 
-#define MAX_SERVICE_NAME 1024
+#define MAX_SERVICE_NAME 0x20
 #define BINDER_DEVICE "/dev/binder"
 #define DEFAULT_MAX_BINDER_THREADS 0xFF
 
@@ -21,8 +21,7 @@ void (*name)(struct __BINDER_OBJECT_BUILDER* this, arg)
 
 #define SET_FIELD(o, name) \
 o.name##_ = name
-
-
+ 
 typedef void (*BINDER_PARSE_CALLBACK)(
     uint32_t, 
     struct binder_transaction_data,
@@ -38,6 +37,7 @@ enum {
     SVC_MGR_ADD_SERVICE,
     SVC_MGR_LIST_SERVICES,
 };
+
 
 typedef struct __BINDER_INFO
 {

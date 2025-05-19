@@ -48,7 +48,7 @@ void parent(){
     uint16_t name[] = {'c', 'o', 'm', '.', 'a', 'a', 'p', 'k'};
     size_t name_len = sizeof(name);
     register_binder_service(info_ptr, name, name_len, COOKIE, HANDLE);
-    get_binder_service(info_ptr, name, name_len);
+    //get_binder_service(info_ptr, name, name_len);
     //CHECK(create_process(child) >= 0);
     getchar();
     binder_close(info_ptr);

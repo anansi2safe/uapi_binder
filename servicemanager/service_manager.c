@@ -206,6 +206,7 @@ int svcmgr_handler(struct binder_state *bs,
             return -1;
         }
         handle = bio_get_ref(msg);
+        fprintf(stderr, "servicemanager: handle %d\n", handle);
         allow_isolated = bio_get_uint32(msg) ? 1 : 0;
         dumpsys_priority = bio_get_uint32(msg);
         if (do_add_service(bs, s, len, handle, txn->sender_euid, allow_isolated, dumpsys_priority,

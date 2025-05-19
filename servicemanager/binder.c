@@ -273,7 +273,6 @@ int binder_parse(struct binder_state *bs, struct binder_io *bio,
             }
 
             binder_dump_txn(&txn.transaction_data);
-            fprintf(stderr, "servicemanager: BR_TRANSACTION11111\n");
             if (func) {
                 fprintf(stderr, "servicemanager: func not null\n");
                 unsigned rdata[256/4];
