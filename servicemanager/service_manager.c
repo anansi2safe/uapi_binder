@@ -102,7 +102,7 @@ uint32_t do_find_service(const uint16_t *s, size_t len, uid_t uid, pid_t spid, c
 int do_add_service(struct binder_state *bs, const uint16_t *s, size_t len, uint32_t handle,
                    uid_t uid, int allow_isolated, uint32_t dumpsys_priority, pid_t spid, const char* sid) {
     struct svcinfo *si;
-    fprintf(stderr, "add service");
+
     //printf("add_service('%s',%x,%s) uid=%d\n", str8(s, len), handle,
     //        allow_isolated ? "allow_isolated" : "!allow_isolated", uid);
 
@@ -112,7 +112,7 @@ int do_add_service(struct binder_state *bs, const uint16_t *s, size_t len, uint3
     si = find_svc(s, len);
     if (si) {
         if (si->handle) {
-            fprintf(stderr, "add_service('%s',%x) uid=%d - ALREADY REGISTERED, OVERRIDE\n",
+            printf("add_service('%s',%x) uid=%d - ALREADY REGISTERED, OVERRIDE\n",
                  str8(s, len), handle, uid);
             svcinfo_death(bs, si);
         }
@@ -120,7 +120,7 @@ int do_add_service(struct binder_state *bs, const uint16_t *s, size_t len, uint3
     } else {
         si = malloc(sizeof(*si) + (len + 1) * sizeof(uint16_t));
         if (!si) {
-            fprintf(stderr, "add_service('%s',%x) uid=%d - OUT OF MEMORY\n",
+            printf("add_service('%s',%x) uid=%d - OUT OF MEMORY\n",
                  str8(s, len), handle, uid);
             return -1;
         }
@@ -146,7 +146,6 @@ int svcmgr_handler(struct binder_state *bs,
                    struct binder_io *msg,
                    struct binder_io *reply)
 {
-    fprintf(stderr, "servicemanager: svcmgr_handler\n");
     struct svcinfo *si;
     uint16_t *s;
     size_t len;
@@ -159,14 +158,11 @@ int svcmgr_handler(struct binder_state *bs,
 
     //printf("target=%p code=%d pid=%d uid=%d\n",
     //      (void*) txn->target.ptr, txn->code, txn->sender_pid, txn->sender_euid);
-
-    fprintf(stderr, "servicemanager: svcmgr_handler tr code: %d\n", txn->code);
     if (txn->target.ptr != BINDER_SERVICE_MANAGER)
         return -1;
 
     if (txn->code == PING_TRANSACTION)
         return 0;
-
     // Equivalent to Parcel::enforceInterface(), reading the RPC
     // header with the strict mode policy mask and the interface name.
     // Note that we ignore the strict_policy and don't propagate it
@@ -175,10 +171,8 @@ int svcmgr_handler(struct binder_state *bs,
     bio_get_uint32(msg);  // Ignore worksource header.
     s = bio_get_string16(msg, &len);
     if (s == NULL) {
-        fprintf(stderr, "servicemanager: svcmgr_handler s == NULL");
         return -1;
     }
-
     if ((len != (sizeof(svcmgr_id) / 2)) ||
         memcmp(svcmgr_id, s, sizeof(svcmgr_id))) {
         fprintf(stderr,"invalid id is %s\n", str8(s, len));
@@ -194,19 +188,18 @@ int svcmgr_handler(struct binder_state *bs,
         }
         handle = do_find_service(s, len, txn->sender_euid, txn->sender_pid,
                                  (const char*) txn_secctx->secctx);
+        fprintf(stderr, "servicemanager: SVC_MGR_GET_SERVICE %x\n", handle);
         if (!handle)
             break;
         bio_put_ref(reply, handle);
         return 0;
 
     case SVC_MGR_ADD_SERVICE:
-        fprintf(stderr, "servicemanager: SVC_MGR_ADD_SERVICE\n");
         s = bio_get_string16(msg, &len);
         if (s == NULL) {
             return -1;
         }
         handle = bio_get_ref(msg);
-        fprintf(stderr, "servicemanager: handle %d\n", handle);
         allow_isolated = bio_get_uint32(msg) ? 1 : 0;
         dumpsys_priority = bio_get_uint32(msg);
         if (do_add_service(bs, s, len, handle, txn->sender_euid, allow_isolated, dumpsys_priority,
