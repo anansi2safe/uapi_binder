@@ -188,7 +188,7 @@ int svcmgr_handler(struct binder_state *bs,
         }
         handle = do_find_service(s, len, txn->sender_euid, txn->sender_pid,
                                  (const char*) txn_secctx->secctx);
-        fprintf(stderr, "servicemanager: SVC_MGR_GET_SERVICE %x\n", handle);
+        fprintf(stderr, "servicemanager: SVC_MGR_GET_SERVICE handle %x\n", handle);
         if (!handle)
             break;
         bio_put_ref(reply, handle);

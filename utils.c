@@ -6,6 +6,111 @@ const uint16_t svcmgr_id[] = {
     'i','c','e', 'M','a','n','a','g',
     'e','r'}; 
 
+uint32_t binder_parse_log(
+    BYTE* rbuffer, 
+    size_t rsize
+){
+    uint32_t result = 0;
+    size_t end_addr = (size_t)rbuffer + rsize;
+    for (size_t ptr = (size_t)rbuffer; ptr < end_addr; ){
+        uint32_t cmd = *((uint32_t*)ptr);
+        ptr += sizeof(uint32_t);
+        switch (cmd) {
+        case BR_NOOP:
+            puts("BR_NOOP");
+            result = cmd;
+            break;
+        case BR_TRANSACTION_COMPLETE:
+            puts("BR_TRANSACTION_COMPLETE");
+            result = cmd;
+            break;
+        case BR_INCREFS:
+            puts("BR_INCREFS");
+            ptr += sizeof(struct binder_ptr_cookie);
+            result = cmd;
+            break;
+        case BR_ACQUIRE:
+            puts("BR_ACQUIRE");
+            ptr += sizeof(struct binder_ptr_cookie);
+            result = cmd;
+            break;
+        case BR_RELEASE:
+            puts("BR_RELEASE");
+            ptr += sizeof(struct binder_ptr_cookie);
+            result = cmd;
+            break;
+        case BR_DECREFS:
+            puts("BR_DECREFS");
+            ptr += sizeof(struct binder_ptr_cookie);
+            result = cmd;
+            break;
+        case BR_TRANSACTION_SEC_CTX:
+        case BR_TRANSACTION:{
+            puts("BR_TRANSACTION");
+            BOOL is_sec_ctx = FALSE;
+            struct binder_transaction_data_secctx tds;
+            size_t surplus_size = end_addr-ptr;
+            binder_uintptr_t secctx = 0;
+            memset(&tds, 0, sizeof(tds));
+            if(cmd == BR_TRANSACTION){
+                CHECK(surplus_size > sizeof(
+                    struct binder_transaction_data_secctx));
+                memcpy(&tds, (const void*)ptr, sizeof(tds));
+                secctx = tds.secctx = 0;
+                ptr += sizeof(tds);
+            }else{
+                CHECK(surplus_size > sizeof(
+                    struct binder_transaction_data));
+                is_sec_ctx = TRUE;
+                memcpy(
+                    &tds.transaction_data, 
+                    (const void*)ptr, sizeof(tds.transaction_data));
+                secctx = tds.secctx;
+                ptr += sizeof(tds.transaction_data);
+            }
+            result = cmd;
+            break;
+        }
+        case BR_REPLY:{
+            puts("BR_REPLY");
+            result = cmd;
+            CHECK(
+                (end_addr - ptr) >= 
+                sizeof(struct binder_transaction_data));
+            struct binder_transaction_data* tr = 
+                (struct binder_transaction_data*)ptr;
+            ptr += sizeof(*tr);
+            break;
+        }
+        case BR_FAILED_REPLY:
+            puts("BR_FAILED_REPLY");
+            result = cmd;
+            break;
+        case BR_DEAD_BINDER:
+            puts("BR_DEAD_BINDER");
+            result = cmd;
+            CHECK(
+                (end_addr - ptr) >= sizeof(binder_uintptr_t));
+            ptr += sizeof(binder_uintptr_t);
+            break;
+        case BR_DEAD_REPLY:
+            puts("BR_DEAD_REPLY");
+
+            result = cmd;
+            break;
+        case BR_ONEWAY_SPAM_SUSPECT:
+            puts("BR_ONEWAY_SPAM_SUSPECT");
+            result = cmd;
+            break;
+        default:
+            printf("default: %x", cmd);
+            result = cmd;
+            return cmd;
+        }
+    }
+    return result;
+}
+
 int create_process(PROCESS_FUNC func){
     int ret = 0;
     pid_t pid = fork();
@@ -110,10 +215,11 @@ uint32_t get_binder_service(
     PBINDER_INFO info, 
     const uint16_t* name,
     size_t name_len,
+    binder_uintptr_t cookie,
+    uint32_t handle,
     uint32_t strict_policy,
     uint32_t worksource_header
 ){
-    uint32_t handle = 0;
     NEW_TR_BUILDER(tb);
     BYTE rbuffer[1024];
     BYTE wbuffer[1024];
@@ -122,7 +228,16 @@ uint32_t get_binder_service(
     
     memset(rbuffer, 0, 1024);
     memset(wbuffer, 0, 1024);
-
+    
+    /**
+     * get service data:
+     * |-----strict_policy(32bits)-----|
+     * |---worksource_header(32bits)---|
+     * |-----svcmgr_id len(32bits)-----|
+     * |------svcmgr_id(26bits)+'\0'---|
+     * |------svc_name len(32bits)-----|
+     * |------svc_name(*bits)+'\0'-----|
+     */
     /*strict_policy*/
     size_t tmp_off = 0;
     *((uint32_t*)(wbuffer+tmp_off)) = strict_policy;
@@ -144,18 +259,37 @@ uint32_t get_binder_service(
 
     tb.set_tr_flags_(&tb, TF_ACCEPT_FDS);
     tb.set_tr_target_handle_(&tb, 0);
-    tb.set_tr_code_(&tb, SVC_MGR_GET_SERVICE);
+    tb.set_tr_code_(&tb, SVC_MGR_CHECK_SERVICE);
     tb.set_tr_data_size_(&tb, wsize);
+    tb.set_tr_offsets_size_(&tb, 0);
+    tb.set_tr_data_ptr_offsets_(&tb, (binder_uintptr_t)NULL);
     tb.set_tr_data_ptr_buffer_(&tb, (binder_uintptr_t)wbuffer);
+    tb.set_tr_cookie_(&tb, cookie);
     size_t d = binder_transaction(info, rbuffer, rsize, tb.tr_);
-    binder_parse_log(rbuffer, d);
-    print_hex(rbuffer, d);
+
+    size_t tr_offset = sizeof(uint32_t) * 0x2;
+    CHECK(tr_offset < d);
+    uint32_t cmd = *((uint32_t*)(rbuffer + tr_offset));
+    if(cmd != BR_REPLY){
+        return 0;
+    }
+    tr_offset += sizeof(uint32_t);
+    CHECK(tr_offset < d);
+    struct binder_transaction_data* tr = 
+        (struct binder_transaction_data*)(rbuffer + tr_offset);
+    if(tr->data_size == sizeof(struct flat_binder_object)){
+        struct flat_binder_object* obj = 
+            (struct flat_binder_object*)tr->data.ptr.buffer;
+        handle = obj->handle;
+    }else{
+        return 0;
+    }
     return handle;
 }
 
 void print_hex(BYTE* buffer, size_t len){
     uint32_t* na = (uint32_t*)buffer;
-    for(size_t i=0; i<len; i++){
+    for(size_t i=0; i<(len/sizeof(uint32_t)); i++){
         printf("%x ", na[i]);
     }
     puts("\n");

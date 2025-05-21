@@ -554,8 +554,10 @@ void bio_put_ref(struct binder_io *bio, uint32_t handle)
     else
         obj = bio_alloc(bio, sizeof(*obj));
 
-    if (!obj)
+    if (!obj){
+        fprintf(stderr, "servicemanager: object is null\n");
         return;
+    }
 
     obj->flags = 0x7f | FLAT_BINDER_FLAG_ACCEPTS_FDS;
     obj->hdr.type = BINDER_TYPE_HANDLE;

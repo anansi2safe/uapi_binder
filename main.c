@@ -32,7 +32,13 @@ void child(){
     uint16_t name[] = {'c', 'o', 'm', '.', 'a', 'a', 'p', 'k'};
     size_t name_len = sizeof(name);
 
-    get_binder_service(info_ptr, name, name_len, 1, 2);
+    uint32_t handle = get_binder_service(
+        info_ptr, name, name_len, COOKIE, HANDLE, 1, 2);
+    if(!handle){
+        puts("aapk handle is 0!\n");
+        return;
+    }
+    printf("aapk handle is %d\n", handle);
 }
 
 void parent(){

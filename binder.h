@@ -172,11 +172,6 @@ int binder_reply_sg(
     struct binder_transaction_data tr
 );
 
-uint32_t binder_parse_log(
-    BYTE* rbuffer, 
-    size_t rsize
-);
-
 /**
  * TR_BUILDER members function
  */

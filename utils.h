@@ -7,6 +7,11 @@
 typedef void (*PROCESS_FUNC)();
 typedef void* (*THREAD_FUNC)(void* args);
 
+uint32_t binder_parse_log(
+    BYTE* rbuffer, 
+    size_t rsize
+);
+
 void register_binder_service(
     PBINDER_INFO info, 
     const uint16_t* name,
@@ -24,6 +29,8 @@ uint32_t get_binder_service(
     PBINDER_INFO info, 
     const uint16_t* name,
     size_t name_len,
+    binder_uintptr_t cookie,
+    uint32_t handle,
     uint32_t strict_policy,
     uint32_t worksource_header
 );
