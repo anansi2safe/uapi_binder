@@ -216,10 +216,10 @@ uint32_t get_binder_service(
     const uint16_t* name,
     size_t name_len,
     binder_uintptr_t cookie,
-    uint32_t handle,
     uint32_t strict_policy,
     uint32_t worksource_header
 ){
+    uint32_t handle = 0;
     NEW_TR_BUILDER(tb);
     BYTE rbuffer[1024];
     BYTE wbuffer[1024];

